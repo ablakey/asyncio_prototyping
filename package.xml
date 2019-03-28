@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>asyncio_prototyping</name>
+  <version>0.0.1</version>
+  <description>Experiments and examples of working with rospy, etc. in an asyncio (single-thread) environment.</description>
+
+  <maintainer email="ablakey@gmail.com">Andrew Blakey</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>catkin_virtualenv</build_depend>
+
+  <depend>rospy</depend>
+
+  <export>
+    <pip_requirements>requirements.txt</pip_requirements>
+  </export>
+
+</package>
