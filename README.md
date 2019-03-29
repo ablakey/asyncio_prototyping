@@ -3,6 +3,13 @@
 Some experimentation of asyncio + rospy + aiohttp and other concepts.
 
 
+## Dependencies:
+
+Depends on Python 3.7, which includes significant asyncio work.
+
+`requirements.txt` is used by `catkin_virtualenv` so you don't need to do anything manually with it. But you can
+`pip install -r requirements.txt` into a virtualenv of your own during development to help your IDE/editor.
+
 ## How To Use:
 
 1. Clone the repo.

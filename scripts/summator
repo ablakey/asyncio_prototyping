@@ -30,7 +30,9 @@ class AsyncioSubscriber:
 class Summator:
     '''Subscribes to an input rostopic, "processes" incoming data, publishes results to an outgoing rostopic.
     In this example, processing data is accepting in integers, summing them, and publishing the total sum over
-    the life of the process.
+    the life of the process. I don't thinkwe need to wrap the rospy.Publisher at all because we can make publish
+    calls in the main thread. It has an internal message queue that separates async publishing from blocking main
+    thread call to `publish`.
     '''
 
     def __init__(self):
