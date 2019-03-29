@@ -27,7 +27,7 @@ class AsyncioSubscriber:
         return await self._queue.async_q.get()
 
 
-class DataProcessor:
+class Summator:
     '''Subscribes to an input rostopic, "processes" incoming data, publishes results to an outgoing rostopic.
     In this example, processing data is accepting in integers, summing them, and publishing the total sum over
     the life of the process.
@@ -39,11 +39,9 @@ class DataProcessor:
         self._total = 0
         self._start_time = time.time()
         self.web_server = web.Application()
-        self.web_server.add_routes(
-            [web.get('/sum', self._handle_http_request)]
-        )
+        self.web_server.add_routes([web.get('/sum', self._handle_http_request)])
 
-    async def tick(self):
+    async def summate(self):
         '''
         If there is no work to be done, awaits non-blockingly for some data to come in. That's what prevents this
         from being a wildly hot while loop: it's bound to the availability of data to do something with.
@@ -53,11 +51,11 @@ class DataProcessor:
             self._total += message.data
             self._pub.publish(self._total)
 
-    async def long_running_task(self):
+    async def report_uptime(self):
         ''' A task that we do and blocks for a while.
         A real implementation would be a carefully constructed task that either awaits on I/O or breaks up
         the long blocking task into smaller tasks that either await other coroutines or await `asyncio.sleep(0)`,
-        which gives the task a chance to yield to other things like the `tick` coroutine.
+        which gives the task a chance to yield to other things like the `summate` coroutine.
         '''
         while True:
             await asyncio.sleep(5)
@@ -80,16 +78,16 @@ class DataProcessor:
         loop.run_until_complete(runner.setup())
         site = web.TCPSite(runner)
 
-        # This coro returns but the web server keeps running. Must attach to the event loop internally or something.
+        # This coro returns but the web server keeps running. I think it must attach to the event loop internally.
         loop.run_until_complete(site.start())
 
-        loop.run_until_complete(asyncio.gather(
-            self.tick(), self.long_running_task()))
+        # The coro provided by `gather` returns when all coros run by it return (in this case, never)
+        loop.run_until_complete(asyncio.gather(self.summate(), self.report_uptime()))
 
 
 if __name__ == '__main__':
     # Without disable_signals=True, rospy hangs and only exits on SIGTERM escalation. However it might be dying on the
     # way out anyways. Or the error is normal for a Keyboard Interrupt of rospy. This needs to be looked into.
-    rospy.init_node('summation_machine', disable_signals=True)
-    d = DataProcessor()
+    rospy.init_node('summator', disable_signals=True)
+    d = Summator()
     d.start()

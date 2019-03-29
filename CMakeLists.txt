@@ -18,7 +18,7 @@ install(FILES requirements.txt
 
 catkin_install_python(
   PROGRAMS
-        scripts/data_processor
+        scripts/summator
         scripts/numberwang
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
