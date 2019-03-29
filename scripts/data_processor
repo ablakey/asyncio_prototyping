@@ -1,0 +1,95 @@
+#!/usr/bin/env python3.7
+'''
+This experiment tests how a rospy subscriber can pass data into an asyncio event loop.
+The concept is that rospy subscribers are in threads, but the event loop must always be handled in the main loop. This
+is handled by using `janus`, which is a hybrid queue that exposes both a sync (for threading) and async (for asyncio)
+interface to the same queue. It allows us to push messages onto a queue in another thread (the subscriber callback) and
+await them from the event loop via.
+'''
+
+import asyncio
+import time
+
+import janus
+import rospy
+from aiohttp import web
+from std_msgs.msg import Int64
+
+
+class AsyncioSubscriber:
+    '''A thin, incomplete wrapper of rospy.Subscriber to provide an awaitable interface for messages.'''
+
+    def __init__(self, topic, message_type):
+        self._queue = janus.Queue(loop=asyncio.get_event_loop())
+        self._sub = rospy.Subscriber(topic, message_type, lambda msg: self._queue.sync_q.put(msg))
+
+    async def get(self):
+        return await self._queue.async_q.get()
+
+
+class DataProcessor:
+    '''Subscribes to an input rostopic, "processes" incoming data, publishes results to an outgoing rostopic.
+    In this example, processing data is accepting in integers, summing them, and publishing the total sum over
+    the life of the process.
+    '''
+
+    def __init__(self):
+        self._sub = AsyncioSubscriber('number_to_sum', Int64)
+        self._pub = rospy.Publisher('sum', Int64, queue_size=1)
+        self._total = 0
+        self._start_time = time.time()
+        self.web_server = web.Application()
+        self.web_server.add_routes(
+            [web.get('/sum', self._handle_http_request)]
+        )
+
+    async def tick(self):
+        '''
+        If there is no work to be done, awaits non-blockingly for some data to come in. That's what prevents this
+        from being a wildly hot while loop: it's bound to the availability of data to do something with.
+        '''
+        while True:
+            message = await self._sub.get()
+            self._total += message.data
+            self._pub.publish(self._total)
+
+    async def long_running_task(self):
+        ''' A task that we do and blocks for a while.
+        A real implementation would be a carefully constructed task that either awaits on I/O or breaks up
+        the long blocking task into smaller tasks that either await other coroutines or await `asyncio.sleep(0)`,
+        which gives the task a chance to yield to other things like the `tick` coroutine.
+        '''
+        while True:
+            await asyncio.sleep(5)
+            rospy.loginfo(f'Been running for {time.time() - self._start_time}')
+
+    async def _handle_http_request(self, request):
+        '''Return a current total to the HTTP client.'''
+        await asyncio.sleep(1)  # Wow our HTTP server takes 1000ms to respond. Awful!
+        return web.Response(text=f'Total is: {self._total}')
+
+    def start(self):
+        '''Start up the web server and then gather the tasks to run together.
+        run_until_complete blocks until the coroutine within is completed. This allows us to start a coroutine such as
+        `runner.setup()` and let it finish before running another coroutine that depends on it (`site.start()`).
+        But when there's many coroutines to run concurrently, we want to use `gather`.
+        '''
+        loop = asyncio.get_event_loop()
+
+        runner = web.AppRunner(self.web_server)
+        loop.run_until_complete(runner.setup())
+        site = web.TCPSite(runner)
+
+        # This coro returns but the web server keeps running. Must attach to the event loop internally or something.
+        loop.run_until_complete(site.start())
+
+        loop.run_until_complete(asyncio.gather(
+            self.tick(), self.long_running_task()))
+
+
+if __name__ == '__main__':
+    # Without disable_signals=True, rospy hangs and only exits on SIGTERM escalation. However it might be dying on the
+    # way out anyways. Or the error is normal for a Keyboard Interrupt of rospy. This needs to be looked into.
+    rospy.init_node('summation_machine', disable_signals=True)
+    d = DataProcessor()
+    d.start()

@@ -1,0 +1,37 @@
+#!/usr/bin/env python3.7
+'''
+This exists to support the `data_processor` experiment. There's nothing really interesting here. It publishes numbers,
+which fuels the data_processor. It also susbcribes to numbers being returned, and occasionally does an HTTP GET to
+test out that part of the data_processor demo.
+
+The name comes from: https://www.youtube.com/watch?v=0obMRztklqU
+'''
+
+from random import randint
+
+import requests
+import rospy
+from std_msgs.msg import Int64
+
+if __name__ == '__main__':
+    rospy.init_node('numberwang')
+    pub = rospy.Publisher('number_to_sum', Int64, queue_size=1)
+
+    def subscribe_cb(message):
+        rospy.logwarn(f'Received Sum: {message.data}')
+
+    sub = rospy.Subscriber('sum', Int64, subscribe_cb)
+
+    def publish(event):
+        num = randint(0, 100)
+        rospy.logwarn(f'Publishing: {num}')
+        pub.publish(num)
+
+    def get_from_http(event):
+        res = requests.get('http://localhost:8080/sum')
+        rospy.logerr(f'Received Sum from HTTP: {res.text}')
+
+    rospy.Timer(rospy.Duration(1), publish)
+    rospy.Timer(rospy.Duration(6), get_from_http)
+
+    rospy.spin()

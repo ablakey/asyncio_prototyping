@@ -12,14 +12,17 @@ catkin_generate_virtualenv(
   PYTHON_VERSION 3.7
 )
 
-catkin_python_setup()
-
 install(FILES requirements.txt
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
 
 catkin_install_python(
   PROGRAMS
-        scripts/queued_pubsub
+        scripts/data_processor
+        scripts/numberwang
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
 )
