@@ -40,10 +40,10 @@ hard to parse without studying it. I think we can do better...
 
 Imagine that we can look at a live debug console and see an output like:
 
-| Coroutine            | Awaiting At | Idle Time | Label                                                |
-|----------------------|-------------|-----------|------------------------------------------------------|
-| start_webserver_coro | 53          | 309s      | waiting for HTTP request                             |
-| monitor_coro         | 60          | 3s        | 5 second sleep between logs to monitor.              |
-| summation_coro       | 70          | 2s        | Waiting for a message to come in on `/sum` rostopic. |
+| Coroutine            | Awaiting Line | Idle Time | Label                                                |
+|----------------------|---------------|-----------|------------------------------------------------------|
+| start_webserver_coro | 53            | 309s      | waiting for HTTP request                             |
+| monitor_coro         | 60            | 3s        | 5 second sleep between logs to monitor.              |
+| summation_coro       | 70            | 2s        | Waiting for a message to come in on `/sum` rostopic. |
 
 This would let us see at any point where all our coroutines are.  We might even want to be able to report if at any given instance, a coroutine isn't awaiting, it's actually performing synchronous python. Maybe this is done by reporting its last await. Ie. "Last seen at...". If done properly, any non-awaiting coroutine should take fractions of a second to process through a block before it hits another await.
