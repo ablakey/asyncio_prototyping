@@ -1,4 +1,4 @@
 <launch>
     <node name="numberwang" pkg="asyncio_prototyping" type="numberwang" output="screen" required="true"/>
-    <node name="data_processor" pkg="asyncio_prototyping" type="data_processor" output="screen" required="true"/>
+    <node name="summator" pkg="asyncio_prototyping" type="summator" output="screen" required="true"/>
 </launch>

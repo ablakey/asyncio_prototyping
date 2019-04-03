@@ -10,6 +10,7 @@ await them from the event loop via.
 import asyncio
 import time
 
+import aiomonitor
 import janus
 import rospy
 from aiohttp import web
@@ -84,7 +85,8 @@ class Summator:
         loop.run_until_complete(site.start())
 
         # The coro provided by `gather` returns when all coros run by it return (in this case, never)
-        loop.run_until_complete(asyncio.gather(self.summate(), self.report_uptime()))
+        with aiomonitor.start_monitor(loop):
+            loop.run_until_complete(asyncio.gather(self.summate(), self.report_uptime()))
 
 
 if __name__ == '__main__':

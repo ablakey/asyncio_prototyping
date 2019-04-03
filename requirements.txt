@@ -1,4 +1,5 @@
 aiohttp==3.5.4
+aiomonitor==0.4.4
 janus==0.4.0
-rospkg==1.1.7
 requests==2.21.0
+rospkg==1.1.7
