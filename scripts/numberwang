@@ -1,8 +1,8 @@
 #!/usr/bin/env python3.7
 '''
-This exists to support the `data_processor` experiment. There's nothing really interesting here. It publishes numbers,
-which fuels the data_processor. It also susbcribes to numbers being returned, and occasionally does an HTTP GET to
-test out that part of the data_processor demo.
+This exists to support the `summator` experiment. There's nothing really interesting here. It publishes numbers,
+which fuels the summator. It also susbcribes to numbers being returned, and occasionally does an HTTP GET to
+test out that part of the summator demo.
 
 The name comes from: https://www.youtube.com/watch?v=0obMRztklqU
 '''
