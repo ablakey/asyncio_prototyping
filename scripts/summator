@@ -44,9 +44,9 @@ class Summator:
         self.web_server.add_routes([web.get('/sum', self._handle_http_request)])
 
     async def summate(self):
-        '''
-        If there is no work to be done, awaits non-blockingly for some data to come in. That's what prevents this
-        from being a wildly hot while loop: it's bound to the availability of data to do something with.
+        ''' Awaits non-blockingly for some data to come in and sums it then publishes.
+        That's what prevents this from being a wildly hot while loop: it's bound to the availability of data 
+        to do something with.
         '''
         while True:
             message = await self._sub.get()
