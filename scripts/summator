@@ -23,6 +23,11 @@ def get_task_report():
     report = []
     for t in asyncio.Task.all_tasks():
         coro = t._coro
+
+        # Ignore completed tasks. They get cleaned up.
+        if coro.cr_frame is None:
+            continue
+
         info = inspect.getframeinfo(coro.cr_frame)
         report.append({
             'task_name': coro.__name__,
@@ -58,9 +63,10 @@ class Summator:
         self._pub = rospy.Publisher('sum', Int64, queue_size=1)
         self._total = 0
         self._start_time = time.time()
-        self.web_server = web.Application()
+        self.web_server = web.Application(debug=True)
         self.web_server.add_routes([web.get('/sum', self.handle_http_request)])
         self.web_server.add_routes([web.get('/coroutines', self.handle_http_coro_request)])
+        self.web_server.add_routes([web.get('/error', self.handle_http_error_request)])
 
     async def summate(self):
         ''' Awaits non-blockingly for some data to come in and sums it then publishes.
@@ -91,6 +97,9 @@ class Summator:
         '''Return a report of the status of all coroutines.'''
         report = get_task_report()
         return web.Response(text=json.dumps(report, indent=4))
+
+    async def handle_http_error_request(self, request):
+        raise RuntimeError('Hitting this endpoint should fail. But everything else should continue working.')
 
     def start(self):
         '''Start up the web server and then gather the tasks to run together.
