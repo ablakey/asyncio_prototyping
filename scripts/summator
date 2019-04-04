@@ -8,13 +8,30 @@ await them from the event loop via.
 '''
 
 import asyncio
+import inspect
+import json
 import time
 
-import aiomonitor
 import janus
 import rospy
 from aiohttp import web
 from std_msgs.msg import Int64
+
+
+def get_task_report():
+    '''Returns a report of where each coroutine is currently awaiting.'''
+    report = []
+    for t in asyncio.Task.all_tasks():
+        coro = t._coro
+        info = inspect.getframeinfo(coro.cr_frame)
+        report.append({
+            'task_name': coro.__name__,
+            'filename': info[0],
+            'line_number': info[1],
+            'function_name': info[2],
+            'line_source': ''.join(info[3]).strip()
+        })
+    return report
 
 
 class AsyncioSubscriber:
@@ -42,11 +59,12 @@ class Summator:
         self._total = 0
         self._start_time = time.time()
         self.web_server = web.Application()
-        self.web_server.add_routes([web.get('/sum', self._handle_http_request)])
+        self.web_server.add_routes([web.get('/sum', self.handle_http_request)])
+        self.web_server.add_routes([web.get('/coroutines', self.handle_http_coro_request)])
 
     async def summate(self):
         ''' Awaits non-blockingly for some data to come in and sums it then publishes.
-        That's what prevents this from being a wildly hot while loop: it's bound to the availability of data 
+        That's what prevents this from being a wildly hot while loop: it's bound to the availability of data
         to do something with.
         '''
         while True:
@@ -64,10 +82,15 @@ class Summator:
             await asyncio.sleep(5)
             rospy.loginfo(f'Been running for {time.time() - self._start_time}')
 
-    async def _handle_http_request(self, request):
+    async def handle_http_request(self, request):
         '''Return a current total to the HTTP client.'''
         await asyncio.sleep(1)  # Wow our HTTP server takes 1000ms to respond. Awful!
         return web.Response(text=f'Total is: {self._total}')
+
+    async def handle_http_coro_request(self, request):
+        '''Return a report of the status of all coroutines.'''
+        report = get_task_report()
+        return web.Response(text=json.dumps(report, indent=4))
 
     def start(self):
         '''Start up the web server and then gather the tasks to run together.
@@ -85,8 +108,10 @@ class Summator:
         loop.run_until_complete(site.start())
 
         # The coro provided by `gather` returns when all coros run by it return (in this case, never)
-        with aiomonitor.start_monitor(loop):
-            loop.run_until_complete(asyncio.gather(self.summate(), self.report_uptime()))
+        loop.run_until_complete(asyncio.gather(
+            self.summate(),
+            self.report_uptime(),
+        ))
 
 
 if __name__ == '__main__':

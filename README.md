@@ -15,7 +15,7 @@ Depends on Python 3.7, which includes significant asyncio work.
 1. Clone the repo.
 2. Make package.xml dependencies available (ie. catkin_virtualenv)
 3. `catkin build`
-4. `roslaunch asyncio_prototyping queued_pubsub.launch`
+4. `roslaunch asyncio_prototyping summator.launch`
 
 
 ## Coroutine debugging.
